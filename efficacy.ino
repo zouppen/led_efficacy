@@ -3,6 +3,7 @@
 // Configurable parameters
 const int luxRange = 2; // Choose correct in range of 0..3
 const float highVoltage = 2.6; // Must be lower than the rating of your capacitor
+const int interval = 250; // Interval between measurements in milliseconds
 
 // Some precalculated values
 const float luxCoeff = (float)(125 << (luxRange << 1))/4096;
@@ -42,62 +43,71 @@ void setup()
 }
 
 void loop()
-{
+{  
+  // Constant intervals
   unsigned long now = millis();
-  long sleep = targetTime-now;
-  if (sleep > 0) {
-    Serial.print("sleeping ");
-    Serial.println(sleep);
-    delay(sleep);
+  if (targetTime > now) {
+    delay(targetTime-now);
   } else {
-    Serial.println("TIMING ERROR");
+    Serial.print("TIMING ERROR! Check I2C connection.\r\n");
   }
-  targetTime += 1000;
+  targetTime += interval;
 
   word lux = getLux();
   int volts = analogRead(A0);
 
-  Serial.print(lux*luxCoeff);
-  Serial.print(" lx, ");
-  Serial.print(volts*voltCoeff);
-  Serial.print(" V    \r");
+  // Clean line
+  Serial.print("\r\x1B[K");
+
+  // Check if saturated
+  if (lux == 0xffff) {
+    Serial.print("SATURATION DETECTED! Raise lux range.\r\n");
+  }
 
   // If not yet charged.
   if (!gotHighVoltage) {
     if (volts >= stopCharge) {
-      Serial.println("Fully charged.");
+      Serial.print("Fully charged.\r\n");
       gotHighVoltage=true;
     }
-    return;
+    goto out;
   }
   
   // If charged but not yet started.
   if (start==0) {
     if (volts <= startMeasure) {
-      Serial.println("Measurement started.");
+      Serial.print("Measurement started.\r\n");
       start = millis();
       cumulativeLux = lux;
       measurements = 1;
     }
-    return;
+    goto out;
   }
   
   // If charged but bright enough.
   if (lux > darkness) {
     cumulativeLux += lux;
     measurements++;
-    return;
+    goto out;
   }
   
   // Energy has run out.
-  Serial.println("Measurement ready.");
+  Serial.print("Measurement ready.\r\n");
   Serial.print("cumulative,measurements,duration: ");
   Serial.print(cumulativeLux);
   Serial.print(',');
   Serial.print(measurements);
   Serial.print(',');
-  Serial.println(now-start);
+  Serial.print(now-start);
+  Serial.print("\r\n");
   start = 0;
   gotHighVoltage=false;
- }
+  
+out: 
+
+  Serial.print(lux*luxCoeff);
+  Serial.print(" lx, ");
+  Serial.print(volts*voltCoeff);
+  Serial.print(" V");    
+}
 
