@@ -108,6 +108,11 @@ out:
   Serial.print(lux*luxCoeff);
   Serial.print(" lx, ");
   Serial.print(volts*voltCoeff);
-  Serial.print(" V");    
+  Serial.print(" V");
+  if (start) {
+    Serial.print(", ");
+    Serial.print((float)(now-start)/1000);
+    Serial.print(" s");
+  }
 }
 
