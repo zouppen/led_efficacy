@@ -4,12 +4,13 @@
 const int luxRange = 2; // Choose correct in range of 0..3
 const float highVoltage = 2.6; // Must be lower than the rating of your capacitor
 const int interval = 250; // Interval between measurements in milliseconds
+const float margin = 0.05; // Avoid problems with hysteresis by discharge this much before starting to measurement
 
 // Some precalculated values
 const float luxCoeff = (float)(125 << (luxRange << 1))/4096;
 const float voltCoeff = 4.8828125e-3; // with 5V supply voltage
-const int stopCharge = highVoltage/voltCoeff;
-const int startMeasure = (highVoltage-0.1)/voltCoeff; // Little smaller to avoid problems with hysteresis 
+const int stopCharge = 2*highVoltage/voltCoeff;
+const int startMeasure = 2*(highVoltage-margin)/voltCoeff;
 const int darkness = 5; // Any small number between 2..100 will probably do
 
 #include <Wire.h>
@@ -29,6 +30,7 @@ unsigned long start = 0;
 unsigned long cumulativeLux;
 int measurements;
 unsigned long targetTime = 0;
+int lastVolts = 0; // Keep old value to reduce error
 
 void setup()
 {
@@ -66,7 +68,7 @@ void loop()
 
   // If not yet charged.
   if (!gotHighVoltage) {
-    if (volts >= stopCharge) {
+    if (volts + lastVolts >= stopCharge) {
       Serial.print("Fully charged.\r\n");
       gotHighVoltage=true;
     }
@@ -75,7 +77,7 @@ void loop()
   
   // If charged but not yet started.
   if (start==0) {
-    if (volts <= startMeasure) {
+    if (volts + lastVolts <= startMeasure) {
       Serial.print("Measurement started.\r\n");
       start = millis();
       cumulativeLux = lux;
@@ -105,6 +107,7 @@ void loop()
   
 out: 
 
+  lastVolts = volts;
   Serial.print(lux*luxCoeff);
   Serial.print(" lx, ");
   Serial.print(volts*voltCoeff);
