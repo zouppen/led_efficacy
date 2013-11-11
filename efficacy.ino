@@ -34,11 +34,16 @@ int lastVolts = 0; // Keep old value to reduce error
 
 void setup()
 {
-  byte init[] = {0,160,luxRange};
-  Wire.begin(); // join i2c bus (address optional for master)
+  // Turn down PSU
+  pinMode(4, OUTPUT);
+  digitalWrite(4,HIGH);
+  
+  // Initialize serial port
   Serial.begin(9600);
   
-  // Configure ISL29023  
+  // Configure ISL29023 
+  byte init[] = {0,160,luxRange};
+  Wire.begin();
   Wire.beginTransmission(0x44);
   Wire.write(init,sizeof(init));
   Wire.endTransmission();
@@ -71,6 +76,7 @@ void loop()
     if (volts + lastVolts >= stopCharge) {
       Serial.print("Fully charged.\r\n");
       gotHighVoltage=true;
+      digitalWrite(4,LOW); // Start discharge
     }
     goto out;
   }
@@ -104,6 +110,7 @@ void loop()
   Serial.print("\r\n");
   start = 0;
   gotHighVoltage=false;
+  digitalWrite(4,HIGH); // Recharge
   
 out: 
 
