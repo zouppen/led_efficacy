@@ -2,9 +2,9 @@
 
 // Configurable parameters
 const int luxRange = 2; // Choose correct in range of 0..3
-const float highVoltage = 2.6; // Must be lower than the rating of your capacitor
+const float highVoltage = 2.65; // Must be lower than the rating of your capacitor
 const int interval = 250; // Interval between measurements in milliseconds
-const float margin = 0.05; // Avoid problems with hysteresis by discharge this much before starting to measurement
+const float margin = 0.15; // Avoid problems with hysteresis by discharge this much before starting to measurement
 
 // Some precalculated values
 const float luxCoeff = (float)(125 << (luxRange << 1))/4096;
@@ -34,8 +34,8 @@ int lastVolts = 0; // Keep old value to reduce error
 
 void setup()
 {
-  // Turn down PSU
-  pinMode(4, OUTPUT);
+  // Turn on PSU and turn off light
+  pinMode(4,OUTPUT);
   digitalWrite(4,HIGH);
   
   // Initialize serial port
@@ -76,7 +76,7 @@ void loop()
     if (volts + lastVolts >= stopCharge) {
       Serial.print("Fully charged.\r\n");
       gotHighVoltage=true;
-      digitalWrite(4,LOW); // Start discharge
+      digitalWrite(4,LOW); // Disconnect PSU, turn on the LED
     }
     goto out;
   }
