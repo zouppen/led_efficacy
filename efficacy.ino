@@ -113,8 +113,10 @@ void loop()
 out: 
 
   Serial.print(", ");
-  Serial.print(lux*luxCoeff);
-  Serial.print(" lx, ");
+  if (gotHighVoltage) {
+    Serial.print(lux*luxCoeff);
+    Serial.print(" lx, ");
+  }
   Serial.print(volts*voltCoeff);
   Serial.print(" V");
   if (start) {
