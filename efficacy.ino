@@ -73,21 +73,21 @@ void loop()
   // If not yet charged.
   if (!gotHighVoltage) {
     if (volts >= stopCharge) {
-      Serial.print("Fully charged.\r\n");
       gotHighVoltage=true;
       digitalWrite(4,LOW); // Disconnect PSU, turn on the LED
     }
+    Serial.print("charging");
     goto out;
   }
   
   // If charged but not yet started.
   if (start==0) {
     if (volts <= startMeasure) {
-      Serial.print("Measurement started.\r\n");
       start = millis();
       cumulativeLux = lux;
       measurements = 1;
     }
+    Serial.print("preparing");
     goto out;
   }
   
@@ -95,24 +95,24 @@ void loop()
   if (lux > darkness) {
     cumulativeLux += lux;
     measurements++;
+    Serial.print("discharging");
     goto out;
   }
   
   // Energy has run out.
-  Serial.print("Measurement ready.\r\n");
-  Serial.print("cumulative,measurements,duration: ");
+  Serial.print("energy,measurements: ");
   Serial.print(cumulativeLux);
   Serial.print(',');
   Serial.print(measurements);
-  Serial.print(',');
-  Serial.print(now-start);
   Serial.print("\r\n");
   start = 0;
   gotHighVoltage=false;
   digitalWrite(4,HIGH); // Recharge
+  Serial.print("finalizing");
   
 out: 
 
+  Serial.print(", ");
   Serial.print(lux*luxCoeff);
   Serial.print(" lx, ");
   Serial.print(volts*voltCoeff);
