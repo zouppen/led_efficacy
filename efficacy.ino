@@ -3,14 +3,14 @@
 // Configurable parameters
 const int luxRange = 2; // Choose correct in range of 0..3
 const float highVoltage = 2.65; // Must be lower than the rating of your capacitor
-const int interval = 250; // Interval between measurements in milliseconds
+const int interval = 100; // Interval between measurements in milliseconds
 const float margin = 0.15; // Avoid problems with hysteresis by discharge this much before starting to measurement
 
 // Some precalculated values
 const float luxCoeff = (float)(125 << (luxRange << 1))/4096;
-const float voltCoeff = 4.8828125e-3; // with 5V supply voltage
-const int stopCharge = 2*highVoltage/voltCoeff;
-const int startMeasure = 2*(highVoltage-margin)/voltCoeff;
+const float voltCoeff = 2.44140625e-3; // with 5V supply voltage and two measurements (5/1024/2)
+const int stopCharge = highVoltage/voltCoeff;
+const int startMeasure = (highVoltage-margin)/voltCoeff;
 const int darkness = 5; // Any small number between 2..100 will probably do
 
 #include <Wire.h>
@@ -30,7 +30,6 @@ unsigned long start = 0;
 unsigned long cumulativeLux;
 int measurements;
 unsigned long targetTime = 0;
-int lastVolts = 0; // Keep old value to reduce error
 
 void setup()
 {
@@ -61,7 +60,7 @@ void loop()
   targetTime += interval;
 
   word lux = getLux();
-  int volts = analogRead(A0);
+  int volts = analogRead(A0) + analogRead(A0);
 
   // Clean line
   Serial.print("\r\x1B[K");
@@ -73,7 +72,7 @@ void loop()
 
   // If not yet charged.
   if (!gotHighVoltage) {
-    if (volts + lastVolts >= stopCharge) {
+    if (volts >= stopCharge) {
       Serial.print("Fully charged.\r\n");
       gotHighVoltage=true;
       digitalWrite(4,LOW); // Disconnect PSU, turn on the LED
@@ -83,7 +82,7 @@ void loop()
   
   // If charged but not yet started.
   if (start==0) {
-    if (volts + lastVolts <= startMeasure) {
+    if (volts <= startMeasure) {
       Serial.print("Measurement started.\r\n");
       start = millis();
       cumulativeLux = lux;
@@ -114,7 +113,6 @@ void loop()
   
 out: 
 
-  lastVolts = volts;
   Serial.print(lux*luxCoeff);
   Serial.print(" lx, ");
   Serial.print(volts*voltCoeff);
